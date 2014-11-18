@@ -4,7 +4,7 @@ polling : polling_serveur.o tools.o
 	gcc polling_serveur.o tools.o -o polling
 
 polling_serveur.o : polling_serveur.c
-	gcc polling_serveur.c -c -Wall -Wextra
+	gcc polling_serveur.c -c
 
 tools.o : tools.c
-	gcc tools.c -c -Wall -Wextra
+	gcc tools.c -c
