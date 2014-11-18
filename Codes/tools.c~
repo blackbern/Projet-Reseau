@@ -1,6 +1,0 @@
-#include <tool_serv.h>
-
-int Ecrire(FILE *f, char *s)
-{
-  return 0;
-}
