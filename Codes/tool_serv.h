@@ -14,12 +14,9 @@
 #include <errno.h>      // Fichier d'en-têtes pour la gestion des erreurs (notamment perror()) 
 
 #define FIC "./fichier.txt"
-#define FCTRL "./control.txt"
 
-int initialisation();
 int creersockudp(u_short port);
 int creersocktcp(u_short port);
-int est_libre();
-int ecrire(char *s);
+int ecrire(char*);
 
 #endif

@@ -83,25 +83,16 @@ int creersocktcp( u_short port) {
   return (sock);
 }
 
-int ecrire(char *s)
+int ecrire(char *m)
 {
+  FILE *fic = fopen(FIC, "a");
+  if(fwrite(m, sizeof(char), strlen(m), fic) == 0)
+    perror("Erreur ecriture fichier ");
+  fclose(fic);
   return 0;
 }
 
 int est_libre()
 {
   return 1;
-}
-
-int initialisation()
-{
-  FILE *f = fopen(FCTRL, "w");
-  if(fwrite("libre", sizeof(char), 5,f) == 0)
-    {
-      perror("erreur write init : ");
-      return 1;
-    }
-  fclose(f);
-
-  return 0;
 }
