@@ -39,9 +39,10 @@ int fils_udp(int sock)
   return 0;
 }
 
-int fils_tcp(int sock)
+int fils_tcp(int sock, int presock, int postsock)
 {
   int msgsock, s;
+  char *jeton = strdup("notej");
   char msg[BUFSIZ];
 
   msgsock = accept (sock, (struct sockaddr *) 0, (unsigned int*) 0);
@@ -56,34 +57,35 @@ int fils_tcp(int sock)
   // On lit le message envoyé par la socket de communication. 
   //  msg contiendra la chaine de caractères envoyée par le réseau,
   // s le code d'erreur de la fonction. -1 si pb et sinon c'est le nombre de caractères lus
-  if(!est_libre())
-    write(msgsock, "Ressource en cours d'utlisation, merci de patienter...", 1024);
-  while(!est_libre());
-  if(write(msgsock, "Ressource disponible : veuillez saisir votre texte\n", 1024 < 0))
-    perror("Erreur write : ");
 
-  if((s = read(msgsock, msg, 1024)) < 0)
-    perror("Erreur read : ");
-  else {
-    // Si le code d'erreur est bon, on affiche le message.
-    msg[s] = 0;
-    ecrire(msg);
+  while(1)
+    {
+      if(presock != 0)
+	{
+	  write(msgsock, "En attente du jeton...\n", 1024);
+	  while(strcmp(jeton, "jeton") != 0)
+	    read(presock, jeton, 1024);
+	}
+      if(write(msgsock, "Ressource disponible : veuillez saisir votre texte\n", 1024 < 0))
+	perror("Erreur write ");
 
-    // On demande à l'utilisateur de rentrer un message qui va être expédié sur le réseau
-    msg[0] = '\0';
-    scanf(" %[^\n]", msg);
+      if((s = read(msgsock, msg, 1024)) < 0)
+	perror("Erreur read ");
+      else {
+	// Si le code d'erreur est bon, on affiche le message.
+	msg[s] = 0;
+	ecrire(msg);
+
+	if(write(msgsock, "Votre message a bien été écrit, passage du jeton", 1024) < 0)
+	  perror("Erreur write ");
     
-    // On va écrire sur la socket, en testant le code d'erreur de la fonction write.
-    s = write(msgsock, msg, strlen(msg));
-    if (s == -1) {
-      perror("Erreur write");
-      return(-1);
+	if(postsock != 0 && write(postsock, "jeton", 1024) < 0)
+	  perror("write ");
+      }
     }
-    else
-      printf("Ecriture reussie, msg: %s\n", msg);
-    // On referme la socket de communication
-    close(msgsock);
-  }
+  close(msgsock);
+  close(presock);
+  close(postsock);
   return 0;
 }
 
@@ -98,7 +100,6 @@ int main (int argc, char* argv[]) {
   // On définit les variables nécéssaires
   int *socks, i, sock, udp, tcp;
   fd_set fd_read, fd_write;
-  FILE *file = fopen(FIC, "w");
   
   // On crée les sockets
   socks = (int*)malloc(2*(argc-1)*sizeof(int));
@@ -108,7 +109,6 @@ int main (int argc, char* argv[]) {
       socks[i+argc] = creersocktcp(atoi(argv[i+1]));
       listen(socks[i+argc], 5);
     }
-  initialisation();
 
   while(1)
     {
@@ -124,30 +124,30 @@ int main (int argc, char* argv[]) {
 	}
 
       select(socks[2*argc-2]+1, &fd_read, 0, 0, 0);
+      for(i = 0; i < argc-1; i++)
+	{
+	  if(FD_ISSET(socks[i], &fd_read))
+	    {
+	      sock = socks[i];
+	      udp = 1;
+	      break;
+	    }
+	  else if(FD_ISSET(socks[i+argc], &fd_read))
+	    {
+	      sock = socks[i+argc];
+	      tcp = 1;
+	      break;
+	    }
+	}
       if(fork() == 0)
 	{
-	  for(i = 0; i < argc-1; i++)
-	    {
-	      if(FD_ISSET(socks[i], &fd_read))
-		{
-		  sock = socks[i];
-		  udp = 1;
-		  break;
-		}
-	      else if(FD_ISSET(socks[i+argc], &fd_read))
-		{
-		  sock = socks[i+argc];
-		  tcp = 1;
-		  break;
-		}
-	    }
 	  if(udp)
 	    {
 	      fils_udp(sock);
 	    }
 	  else if(tcp)
 	    {
-	      fils_tcp(sock);
+	      fils_tcp(sock, 0, 0);
 	    }
 	  exit(EXIT_SUCCESS);
 	}
