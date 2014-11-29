@@ -10,11 +10,11 @@ tools.o : tools.c
 	gcc tools.c -c -Wall -Wextra
 
 
-cltokudp : clientudp.o
-	gcc clientudp.o -o cltokudp
+cltokudp : cltokudp.o
+	gcc cltokudp.o -o cltokudp
 
-clientudp.o : clientudp.c
-	gcc clientudp.c -c -Wall -Wextra
+cltokudp.o : clientudp.c
+	gcc cltokudp.c -c -Wall -Wextra
 
 
 cltoktcp : clienttcp.o

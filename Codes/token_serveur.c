@@ -4,37 +4,41 @@
 
 #include "tool_serv.h"
 
-int fils_udp(int sock)
+int fils_udp(int sockcom)//, int socktoken)
 {
   socklen_t len;
-  struct sockaddr addr;
+  struct sockaddr addr, tokenaddr;
   int s;
-  char msg[BUFSIZ];
+  char mrec[BUFSIZ], *menv;
 
   len = sizeof(addr);
-  s = recvfrom(sock, msg, 1024, 0, &addr, &len);
+  //initialisation de la connexion
+  s = recvfrom(sockcom, mrec, 1024, 0, &addr, &len);
 
   if(s == -1)
     perror("Problemes");
   else
     {
       // Si le code d'erreur est bon, on affiche le message.
-      msg[s] = 0;
-      printf("Msg: %s\n", msg);
-      printf("Recept reussie, emission msg: ");
+      mrec[s] = 0;
+      menv = strdup("?");
 
-      // On demande à l'utilisateur de rentrer un message qui va être expédié sur le réseau
-      msg[0] = '\0';
-      scanf(" %[^\n]", msg);
-    
-      // On va écrire sur la socket, en testant le code d'erreur de la fonction write.
-      s = sendto(sock, msg, strlen(msg), 0,  &addr, len);
+      s = sendto(sockcom, menv, strlen(menv), 0,  &addr, len);
       if (s == -1) {
 	perror("Erreur sendto");
 	return(-1);
       }
+
+      s = recvfrom(sockcom, mrec, 1024, 0, &addr, &len);
+
+      if(s == -1)
+	perror("Problemes");
       else
-	printf("Ecriture reussie, msg: %s\n", msg);
+	{
+	  ecrire(mrec);
+	  menv = strdup("jeton");
+	  //	  s = sendto(socktoken, menv, strlen(menv), 0,  &addr, len);
+	} 
     }
   return 0;
 }
@@ -110,18 +114,19 @@ int main (int argc, char* argv[]) {
       listen(socks[i+argc], 5);
     }
 
+  FD_ZERO(&fd_read);
+  FD_ZERO(&fd_write);
+
+  for(i = 0; i < argc-1; i++)
+    {
+      FD_SET(socks[i], &fd_read);
+      FD_SET(socks[i+argc], &fd_read);
+    }
+
   while(1)
     {
       udp = 0;
       tcp = 0;
-      FD_ZERO(&fd_read);
-      FD_ZERO(&fd_write);
-
-      for(i = 0; i < argc-1; i++)
-	{
-	  FD_SET(socks[i], &fd_read);
-	  FD_SET(socks[i+argc], &fd_read);
-	}
 
       select(socks[2*argc-2]+1, &fd_read, 0, 0, 0);
       for(i = 0; i < argc-1; i++)
@@ -129,12 +134,15 @@ int main (int argc, char* argv[]) {
 	  if(FD_ISSET(socks[i], &fd_read))
 	    {
 	      sock = socks[i];
+	      FD_CLR(socks[i], &fd_read);
 	      udp = 1;
+	      printf("udp + %d\n", i);
 	      break;
 	    }
 	  else if(FD_ISSET(socks[i+argc], &fd_read))
 	    {
 	      sock = socks[i+argc];
+	      FD_CLR(socks[i+argc], &fd_read);
 	      tcp = 1;
 	      break;
 	    }
