@@ -12,11 +12,17 @@
 #include <netdb.h>      // Fichier d'en-têtes contenant la définition de fonctions et de structures permettant d'obtenir des informations sur le réseau (gethostbyname(), struct hostent, ...)
 #include <memory.h>     // Contient l'inclusion de string.h (s'il n'est pas déjà inclus) et de features.h
 #include <errno.h>      // Fichier d'en-têtes pour la gestion des erreurs (notamment perror()) 
+#include <signal.h>
 
 #define FIC "./fichier.txt"
 
+int sock_err, len_err, is_tcp, is_udp;
+struct sockaddr_in addr_err;
+
+void deconnexion();
 int creersockudp(u_short port);
 int creersocktcp(u_short port);
 int ecrire(char*);
+int ecrire_ligne(char*);
 
 #endif

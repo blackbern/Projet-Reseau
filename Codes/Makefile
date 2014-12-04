@@ -9,16 +9,14 @@ token_serveur.o : token_serveur.c
 tools.o : tools.c
 	gcc tools.c -c -Wall -Wextra
 
+cltokudp : cltokudp.o tools.o
+	gcc cltokudp.o tools.o -o cltokudp
 
-cltokudp : cltokudp.o
-	gcc cltokudp.o -o cltokudp
-
-cltokudp.o : clientudp.c
+cltokudp.o : cltokudp.c
 	gcc cltokudp.c -c -Wall -Wextra
 
+cltoktcp : cltoktcp.o tools.o
+	gcc cltoktcp.o tools.o -o cltoktcp
 
-cltoktcp : clienttcp.o
-	gcc clienttcp.o -o cltoktcp
-
-clienttcp.o : clienttcp.c
-	gcc clienttcp.c -c -Wall -Wextra
+cltoktcp.o : cltoktcp.c
+	gcc cltoktcp.c -c -Wall -Wextra

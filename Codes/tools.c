@@ -1,6 +1,5 @@
 #include "tool_serv.h"
 
-
 /*
   creersock
 
@@ -92,7 +91,24 @@ int ecrire(char *m)
   return 0;
 }
 
+int ecrire_ligne(char *m)
+{
+  ecrire(m);
+  ecrire("\n");
+  return 0;
+}
+
 int est_libre()
 {
   return 1;
+}
+
+void deconnexion()
+{
+  printf("Deconnecté\n");
+  if(is_udp)
+    sendto(sock_err, "--quit", 6, 0, (struct sockaddr *) &addr_err, len_err);
+  else if(is_tcp)
+    write(sock_err, "--quit", 6);
+  exit(EXIT_SUCCESS);
 }
