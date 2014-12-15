@@ -20,6 +20,7 @@ int sock_err, len_err, is_tcp, is_udp;
 struct sockaddr_in addr_err;
 
 void deconnexion();
+
 int creersockudp(u_short port);
 int creersocktcp(u_short port);
 int ecrire(char*);

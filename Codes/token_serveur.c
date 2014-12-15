@@ -4,26 +4,52 @@
 
 #include "tool_serv.h"
 
-#define PJETON 9999
+int socks[BUFSIZ], nb_clients;
 
-int fils_udp(int sockcom, int sockjeton)
+typedef struct client {
+  int socket, type, sockbla;
+  struct sockaddr_in addr;
+  struct client *suivant;
+} Client;
+
+Client* extraire_client(Client *c)
+{
+  Client *p = c;
+  
+  while(p->suivant != c)
+    p = p->suivant;
+  p->suivant = c->suivant;
+  return p;
+}
+
+void deroute()
+{
+  int i;
+  for(i = 0; socks[i] != '\0'; i++)
+    {
+      close(socks[i]);
+    }
+  exit(EXIT_SUCCESS);
+}
+
+int fils_udp(Client *client)
 {
   socklen_t len;
   struct sockaddr addr;
-  int s, jeton = 1, fin = 0;
+  int s/*, jeton = 1, fin = 0*/;
   char mrec[BUFSIZ], *menv;
 
   len = sizeof(addr);
   //initialisation de la connexion
-  s = recvfrom(sockcom, mrec, 1024, 0, &addr, &len);
+  s = recvfrom(client->socket, mrec, 1024, 0, &addr, &len);
 
-  while(!fin)
+  /*  while(!fin)
     {
       while(!jeton)
 	{
-	  recvfrom(sockjeton, mrec, 1024, 0, &addr, &len);
+	  recvfrom(client.precedent, mrec, 1024, 0, &(client.addr_p), &len);
 	  jeton = (!strcmp(mrec, "jeton"));
-	}
+	}*/
 
       if(s == -1)
 	perror("Problemes");
@@ -33,76 +59,78 @@ int fils_udp(int sockcom, int sockjeton)
 	  mrec[s] = 0;
 	  menv = strdup("?");
 
-	  s = sendto(sockcom, menv, strlen(menv), 0,  &addr, len);
-	  if (s == -1) {
-	    perror("Erreur sendto");
-	    return(-1);
-	  }
+	  s = sendto(client->socket, menv, strlen(menv), 0,  &addr, len);
+	  if (s == -1)
+	    {
+	      perror("Erreur sendto");
+	    }
 
 	  memset(mrec, 0, sizeof(mrec));
-	  s = recvfrom(sockcom, mrec, 1024, 0, &addr, &len);
+	  s = recvfrom(client->socket, mrec, 1024, 0, &addr, &len);
 
 	  if(s == -1)
 	    perror("Problemes");
 	  else
-	    {
+	    {/*
 	      menv = strdup("jeton");
-	      /*	      if(sendto(sockjeton, menv, strlen(menv), 0,  &addr, len) < 0)
+	      if(sendto(client.suivant, menv, strlen(menv), 0,  &(client.addr_s), len) < 0)
 		perror("Erreur passage jeton ");
-		jeton = 0;*/
+	      jeton = 0;*/
 	      if(strcmp(mrec, "--quit"))
 		ecrire_ligne(mrec);
-	      else
-		fin = 1;
+	      /*      else
+		      fin = 1;*/
 	    }
 	}
-    }
+      //}
   return 0;
 }
 
-int fils_tcp(int sock, int sockjeton)
+int fils_tcp(Client *client)
 {
   socklen_t len;
-  struct sockaddr addr;
-  int jeton = 1, fin = 0, sockbla, optval = 1;
+  int /*jeton = 1, fin = 0,*/ optval = 1;
   char mrec[BUFSIZ], *menv;
 
-  len = sizeof(addr);
+  len = sizeof(client->addr);
   //initialisation de la connexion
-  sockbla = accept(sock, &addr, &len);
-  setsockopt(sockbla, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+  if(client->sockbla == 0)
+    client->sockbla = accept(client->socket, (struct sockaddr *)&(client->addr), &len);
+  if(client->sockbla < 1)
+    perror("accept erreur");
+  setsockopt(client->sockbla, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-  while(!fin)
+  /*  while(!fin)
     {
       while(!jeton)
 	{
-	  recvfrom(sockjeton, mrec, 1024, 0, &addr, &len);
+	  recvfrom(client.precedent, mrec, 1024, 0, &addr, &len);
 	  jeton = (!strcmp(mrec, "jeton"));
-	}
+	  }*/
  
       // Si le code d'erreur est bon, on affiche le message.
       menv = strdup("?");
-
-      if(write(sockbla, menv, strlen(menv)) < 1)
+      if(write(client->sockbla, menv, strlen(menv)) < 1)
 	{
 	  perror("Erreur write ");
-	  return(-1);
 	}
 
       memset(mrec, 0, sizeof(mrec));
-      if(read(sockbla, mrec, 1024) < 0)
+      if(read(client->sockbla, mrec, 1024) < 0)
 	perror("Problemes");
       else
-	{
+	{/*
 	  menv = strdup("jeton");
-	  /*	      if(sendto(sockjeton, menv, strlen(menv), 0,  &addr, len) < 0)
-		      perror("Erreur passage jeton ");
-		      jeton = 0;*/
+	  if(sendto(client.suivant, menv, strlen(menv), 0,  &addr, len) < 0)
+	    perror("Erreur passage jeton ");
+	    jeton = 0;*/
 	  if(strcmp(mrec, "--quit"))
 	    ecrire_ligne(mrec);
 	  else
+	    extraire_client(client);
+	  /*	  else
 	    fin = 1;
-	}
+	    }*/
     }
   return 0;
 }
@@ -116,12 +144,15 @@ int main (int argc, char* argv[]) {
     }
 
   // On définit les variables nécéssaires
-  int *socks, i, sock, udp, tcp;
-  fd_set fd_read, fd_write;
+  int i/*, f, sock*/;
+  Client *client, *old;
+  fd_set fd_read;
+  struct timeval timespan;
+  //  char jeton[BUFSIZ];
   
   // On crée les sockets
   int optval = 1;
-  socks = (int*)malloc(2*(argc-1)*sizeof(int));
+
   for(i = 0; i < argc-1; i++)
     {
       socks[i] = creersockudp(atoi(argv[i+1]));
@@ -130,43 +161,61 @@ int main (int argc, char* argv[]) {
       listen(socks[i+argc], 5);
     }
 
+  signal(SIGINT, deroute);
+
+  client = (Client*) malloc(sizeof(Client));
+  old = (Client*) malloc(sizeof(Client));
+  client->suivant = client;
+  client->sockbla = 0;
+  nb_clients = 0;
+  //  f = fork();
+
+  FD_ZERO(&fd_read);
+  for(i = 0; i < argc-1; i++)
+    {
+      FD_SET(socks[i], &fd_read);
+      FD_SET(socks[i+argc], &fd_read);
+    }
+
   while(1)
     {
-      udp = 0;
-      tcp = 0;
+      timespan.tv_sec = 1;
 
-      FD_ZERO(&fd_read);
-      FD_ZERO(&fd_write);
-      for(i = 0; i < argc-1; i++)
-	{
-	  FD_SET(socks[i], &fd_read);
-	  FD_SET(socks[i+argc], &fd_read);
-	}
-
-      select(socks[2*argc-2]+1, &fd_read, 0, 0, 0);
+      select(socks[2*argc-2]+1, &fd_read, 0, 0, &timespan);
       for(i = 0; i < argc-1; i++)
 	{
 	  if(FD_ISSET(socks[i], &fd_read))
 	    {
-	      sock = socks[i];
-	      udp = 1;
+	      *old = *client;
+	      client->socket = socks[i];
+	      client->type = 0;
+	      client->suivant = old->suivant;
+	      nb_clients++;
+	      old->suivant = client;
+	      FD_CLR(socks[i], &fd_read);
 	      break;
 	    }
 	  else if(FD_ISSET(socks[i+argc], &fd_read))
 	    {
-	      sock = socks[i+argc];
-	      tcp = 1;
+	      *old = *client;
+	      client->socket = socks[i+argc];
+	      client->type = 1;
+	      client->suivant = old->suivant;
+	      nb_clients++;
+	      old->suivant = client;
+	      FD_CLR(socks[i+argc], &fd_read);
 	      break;
 	    }
 	}
-      if(udp)
+      if(client->type == 0)
 	{
-	  fils_udp(sock, 0);
+	  fils_udp(client);
 	}
-      else if(tcp)
+      else if(client->type == 1)
 	{
-	  fils_tcp(sock, 0);
+	  fils_tcp(client);
 	}
+      client = client->suivant;
     }
 
   // On referme les sockets d'écoute.
