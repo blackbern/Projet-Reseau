@@ -7,19 +7,48 @@
 int socks[BUFSIZ], nb_clients;
 
 typedef struct client {
-  int socket, type, sockbla;
-  struct sockaddr_in addr;
-  struct client *suivant;
+  int socket; // socket associée
+  int type; // -1 pour non initialisé / 0 pour udp / 1 pour tcp
+  int sockbla; // socket utilisée après un accept en tcp (identique à socket en udp)
+  struct sockaddr_in addr; // adresse utilisée pour la communication en udp (0 en tcp)
+  struct client *suivant; // client suivant dans l'anneau
 } Client;
 
-Client* extraire_client(Client *c)
+Client* detruire_client(Client *c)
 {
   Client *p = c;
-  
+
+  if(p->suivant == c)
+      return NULL;
   while(p->suivant != c)
     p = p->suivant;
+  free(p->suivant);
   p->suivant = c->suivant;
-  return p;
+  return p->suivant;
+}
+
+Client* creer_client(Client *c, int sock, int t)
+{
+  Client *new, *p = c;
+
+  if(c == NULL)
+    {
+      c = (Client*)malloc(sizeof(Client));
+      c->socket = sock;
+      c->type = t;
+      c->suivant = c;
+    }
+  else
+    {
+      new = (Client*)malloc(sizeof(Client));
+      new->socket = sock;
+      new->type = t;
+      new->suivant = c;
+      while(p->suivant != c)
+	p = p->suivant;
+      p->suivant = new;
+    }
+  return c;
 }
 
 void deroute()
@@ -127,7 +156,7 @@ int fils_tcp(Client *client)
 	  if(strcmp(mrec, "--quit"))
 	    ecrire_ligne(mrec);
 	  else
-	    client = extraire_client(client);
+	    client = detruire_client(client);
 	  /*	  else
 	    fin = 1;
 	    }*/
@@ -152,6 +181,20 @@ int main (int argc, char* argv[]) {
   
   // On crée les sockets
   int optval = 1;
+  
+  Client *c1, *c2, *c3, *c4, *c;
+
+  c = creer_client(c, 1, 0);
+  creer_client(c, 2, 0);
+  creer_client(c, 3, 0);
+  creer_client(c, 4, 0);
+
+  printf("%d\n",c->socket);
+  c = detruire_client(c);
+  if(c != NULL)
+    printf("%d -> %d\n", c->socket, c->suivant->socket);
+  else
+    printf("NULL\n");
 
   for(i = 0; i < argc-1; i++)
     {
@@ -163,10 +206,7 @@ int main (int argc, char* argv[]) {
 
   signal(SIGINT, deroute);
 
-  client = (Client*) malloc(sizeof(Client));
   old = (Client*) malloc(sizeof(Client));
-  client->suivant = client;
-  client->sockbla = 0;
   nb_clients = 0;
   //  f = fork();
 
@@ -187,9 +227,7 @@ int main (int argc, char* argv[]) {
 	  if(FD_ISSET(socks[i], &fd_read))
 	    {
 	      *old = *client;
-	      client->socket = socks[i];
-	      client->type = 0;
-	      client->suivant = old->suivant;
+	      //  client = creer_client(socks[i], 0, old->suivant);
 	      nb_clients++;
 	      old->suivant = client;
 	      FD_CLR(socks[i], &fd_read);
@@ -197,9 +235,7 @@ int main (int argc, char* argv[]) {
 	  else if(FD_ISSET(socks[i+argc], &fd_read))
 	    {
 	      *old = *client;
-	      client->socket = socks[i+argc];
-	      client->type = 1;
-	      client->suivant = old->suivant;
+	      //	      client = creer_client(socks[i+argc], 1, old->suivant);
 	      nb_clients++;
 	      old->suivant = client;
 	      FD_CLR(socks[i+argc], &fd_read);
@@ -207,16 +243,18 @@ int main (int argc, char* argv[]) {
 	}
       if(client->type == 0)
 	{
+	  *old = *client;
 	  fils_udp(client);
 	  if(client->socket != old->socket)
-	    FD_SET(old->sock, &fd_read);
+	    FD_SET(old->socket, &fd_read);
 	}
       else if(client->type == 1)
 	{
 	  *old = *client;
 	  fils_tcp(client);
+	  printf("%d == %d ?\n",client->socket, old->socket);
 	  if(client->socket != old->socket)
-	    FD_SET(old->sock, &fd_read);
+	    FD_SET(old->socket, &fd_read);
 	}
       client = client->suivant;
     }
