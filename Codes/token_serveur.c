@@ -127,7 +127,7 @@ int fils_tcp(Client *client)
 	  if(strcmp(mrec, "--quit"))
 	    ecrire_ligne(mrec);
 	  else
-	    extraire_client(client);
+	    client = extraire_client(client);
 	  /*	  else
 	    fin = 1;
 	    }*/
@@ -193,7 +193,6 @@ int main (int argc, char* argv[]) {
 	      nb_clients++;
 	      old->suivant = client;
 	      FD_CLR(socks[i], &fd_read);
-	      break;
 	    }
 	  else if(FD_ISSET(socks[i+argc], &fd_read))
 	    {
@@ -204,16 +203,20 @@ int main (int argc, char* argv[]) {
 	      nb_clients++;
 	      old->suivant = client;
 	      FD_CLR(socks[i+argc], &fd_read);
-	      break;
 	    }
 	}
       if(client->type == 0)
 	{
 	  fils_udp(client);
+	  if(client->socket != old->socket)
+	    FD_SET(old->sock, &fd_read);
 	}
       else if(client->type == 1)
 	{
+	  *old = *client;
 	  fils_tcp(client);
+	  if(client->socket != old->socket)
+	    FD_SET(old->sock, &fd_read);
 	}
       client = client->suivant;
     }
