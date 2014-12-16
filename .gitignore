@@ -1,7 +1,5 @@
 Projet/*
 Projet.zip
 critiques.odt
-Codes/*.o
+Codes/*[^.c]
 Codes/Test*
-Codes/.*
-Codes/fichier.txt
