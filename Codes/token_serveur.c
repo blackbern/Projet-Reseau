@@ -74,14 +74,6 @@ Client* fils_udp(Client *client)
   //initialisation de la connexion
   s = recvfrom(client->socket, mrec, 1024, 0, &addr, &len);
 
-  /*  while(!fin)
-      {
-      while(!jeton)
-      {
-      recvfrom(client.precedent, mrec, 1024, 0, &(client.addr_p), &len);
-      jeton = (!strcmp(mrec, "jeton"));
-      }*/
-
   if(s == -1)
     perror("Problemes");
   else
@@ -102,25 +94,18 @@ Client* fils_udp(Client *client)
       if(s == -1)
 	perror("Problemes");
       else
-	{/*
-	   menv = strdup("jeton");
-	   if(sendto(client.suivant, menv, strlen(menv), 0,  &(client.addr_s), len) < 0)
-	   perror("Erreur passage jeton ");
-	   jeton = 0;*/
+	{
 	  if(strcmp(mrec, "--quit"))
 	    ecrire_ligne(mrec);
-	  /*      else
-		  fin = 1;*/
 	}
     }
-  //}
   return client;
 }
 
 Client* fils_tcp(Client *client)
 {
   socklen_t len;
-  int /*jeton = 1, fin = 0,*/ optval = 1;
+  int optval = 1;
   char mrec[BUFSIZ], *menv;
 
   len = sizeof(client->addr);
@@ -133,14 +118,6 @@ Client* fils_tcp(Client *client)
       setsockopt(client->sockbla, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
     }
 
-  /*  while(!fin)
-      {
-      while(!jeton)
-      {
-      recvfrom(client.precedent, mrec, 1024, 0, &addr, &len);
-      jeton = (!strcmp(mrec, "jeton"));
-      }*/
- 
   // Si le code d'erreur est bon, on affiche le message.
   menv = strdup("?");
   if(write(client->sockbla, menv, strlen(menv)) < 1)
@@ -152,18 +129,11 @@ Client* fils_tcp(Client *client)
   if(read(client->sockbla, mrec, 1024) < 0)
     perror("Problemes");
   else
-    {/*
-       menv = strdup("jeton");
-       if(sendto(client.suivant, menv, strlen(menv), 0,  &addr, len) < 0)
-       perror("Erreur passage jeton ");
-       jeton = 0;*/
+    {
       if(strcmp(mrec, "--quit"))
 	ecrire_ligne(mrec);
       else
 	client = detruire_client(client);
-      /*	  else
-		  fin = 1;
-		  }*/
     }
   return client;
 }
@@ -177,37 +147,15 @@ int main (int argc, char* argv[]) {
     }
 
   // On définit les variables nécéssaires
-  int i/*, f, sock*/;
+  int i;
   Client *client, *old;
   fd_set fd_read;
   struct timeval timespan;
-  //  char jeton[BUFSIZ];
   
   // On crée les sockets
   int optval = 1;
   client = NULL;
-  /*
-  Client *c1, *c2, *c3, *c4, *c;
 
-  c = creer_client(c, 1, 0);
-  creer_client(c, 2, 0);
-  creer_client(c, 3, 0);
-  creer_client(c, 4, 0);
-
-  printf("%d\n",c->socket);
-  c = detruire_client(c);
-  printf("%d -> %d\n", c->socket, c->suivant->socket);
-  c = detruire_client(c);
-  printf("%d -> %d\n", c->socket, c->suivant->socket);
-  c = detruire_client(c);
-  printf("%d -> %d\n", c->socket, c->suivant->socket);
-  c = detruire_client(c);
-  c = creer_client(c, 1, 0);
-  if(c != NULL)
-    printf("%d -> %d\n", c->socket, c->suivant->socket);
-  else
-    printf("NULL\n");
-  */
   for(i = 0; i < argc-1; i++)
     {
       socks[i] = creersockudp(atoi(argv[i+1]));
@@ -219,7 +167,6 @@ int main (int argc, char* argv[]) {
 
   old = (Client*) malloc(sizeof(Client));
   nb_clients = 0;
-  //  f = fork();
 
   while(1)
     {
