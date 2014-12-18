@@ -13,6 +13,8 @@
 #include <memory.h>     // Contient l'inclusion de string.h (s'il n'est pas déjà inclus) et de features.h
 #include <errno.h>      // Fichier d'en-têtes pour la gestion des erreurs (notamment perror()) 
 #include <signal.h>
+#include <sys/wait.h>
+#include <time.h>
 
 #define FIC "./fichier.txt"
 

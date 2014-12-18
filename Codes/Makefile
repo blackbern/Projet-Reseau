@@ -1,4 +1,4 @@
-all : token cltokudp cltoktcp fifo clfifotcp clfifoudp
+all : token cltokudp cltoktcp fifo clfifotcp clfifoudp csma clcsmatcp clcsmaudp
 
 token : token_serveur.o tools.o
 	gcc token_serveur.o tools.o -o token
@@ -38,3 +38,21 @@ clfifotcp : clfifotcp.o tools.o
 
 clfifotcp.o : clfifotcp.c
 	gcc clfifotcp.c -c -Wall -Wextra
+
+csma : csma_serveur.o tools.o
+	gcc csma_serveur.o tools.o -o csma
+
+csma_serveur.o : csma_serveur.c
+	gcc csma_serveur.c -c -Wall -Wextra
+
+clcsmatcp : clcsmatcp.o tools.o
+	gcc clcsmatcp.o tools.o -o clcsmatcp
+
+clcsmatcp.o : clcsmatcp.c
+	gcc clcsmatcp.c -c -Wall -Wextra
+
+clcsmaudp : clcsmaudp.o tools.o
+	gcc clcsmaudp.o tools.o -o clcsmaudp
+
+clcsmaudp.o : clcsmaudp.c
+	gcc clcsmaudp.c -c -Wall -Wextra
