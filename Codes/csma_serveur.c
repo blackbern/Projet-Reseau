@@ -111,7 +111,7 @@ int main (int argc, char* argv[]) {
 	      perror("Erreur sendto");
 	      exit(EXIT_FAILURE);
       	    }
-      	    printf("temps : %d \n", temps);
+      	    printf("temps : %d\n", temps);
 	  }
 	  udp = 1;
 	} 

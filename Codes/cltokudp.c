@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
 	    }
 	  printf("Ecriture terminée\n");
 	}
-      else if(!strcmp(rec,"-"))
+      else if(!strcmp(rec,""))
 	{
 	  printf("Deconnecté par le serveur\n");
 	  exit(EXIT_FAILURE);
@@ -116,8 +116,6 @@ int main(int argc, char* argv[]) {
     {
       memset(env, 0, sizeof(env));
       memset(rec, 0, sizeof(env));
-      printf("Que voulez-vous écrire ? (--quit pour se deconnecter)\n");
-      scanf(" %[^\n]",env);
       if(recvfrom(sock, rec, 1024, 0, (struct sockaddr *) &adresse, &len) < 0)
 	{
 	  perror("Erreur ecriture");
@@ -125,6 +123,8 @@ int main(int argc, char* argv[]) {
 	}
       if(!strcmp(rec,"?"))
 	{
+	  printf("Que voulez-vous écrire ? (--quit pour se deconnecter)\n");
+	  scanf(" %[^\n]",env);
 	  if (sendto(sock, env, strlen(env), 0, (struct sockaddr *) &adresse, len) == -1)
 	    {
 	      perror("Erreur ecriture");
@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
 	    }
 	  printf("Ecriture terminée\n");
 	}
-      else if(!strcmp(rec,"-"))
+      else if(!strcmp(rec,""))
 	{
 	  printf("Deconnecté par le serveur\n");
 	  exit(EXIT_FAILURE);

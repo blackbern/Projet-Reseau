@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 	printf("Deconnecté par le serveur\n");
 	exit(EXIT_FAILURE);
       }
-    printf("Message envoyé\n");
+    printf("Message envoyé\nEn attente...\n");
 
     while(1)
       {

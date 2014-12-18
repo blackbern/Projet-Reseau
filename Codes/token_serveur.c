@@ -12,7 +12,7 @@ int socks[BUFSIZ];
 typedef struct client {
   int socket; // socket associée
   int type; // -1 pour non initialisé / 0 pour udp / 1 pour tcp
-  int sockbla; // socket utilisée après un accept en tcp (identique à socket en udp)
+  int sockbla; // socket utilisée après un accept en tcp et int utilisé pour acquitter d'une connexion en udp
   struct sockaddr_in addr; // adresse utilisée pour la communication en udp (0 en tcp)
   struct client *suivant; // client suivant dans l'anneau
 } Client;
@@ -81,30 +81,34 @@ void deroute()
 Client* fils_udp(Client *client)
 {
   socklen_t len;
-  struct sockaddr addr;
-  int s/*, jeton = 1, fin = 0*/;
+  int s;
+  struct sockaddr *addr;
   char mrec[BUFSIZ], *menv;
 
-  len = sizeof(addr);
+  len = sizeof(client->addr);
+  addr = (struct sockaddr *) &(client->addr);
   //initialisation de la connexion
-  s = recvfrom(client->socket, mrec, 1024, 0, &addr, &len);
+  if(client->sockbla == -1)
+    {
+      s = recvfrom(client->socket, mrec, 1024, 0, addr, &len);
+      if(s == -1)
+	perror("Problemes");
+      else
+	client->sockbla = 0;
+    }
 
-  if(s == -1)
-    perror("Problemes");
-  else
+  if(client->sockbla != -1)
     {
       // Si le code d'erreur est bon, on affiche le message.
-      mrec[s] = 0;
+      memset(mrec, 0, sizeof(mrec));
       menv = strdup("?");
-
-      s = sendto(client->socket, menv, strlen(menv), 0,  &addr, len);
+      s = sendto(client->socket, menv, strlen(menv), 0, addr, len);
       if (s == -1)
 	{
 	  perror("Erreur sendto");
 	}
-
       memset(mrec, 0, sizeof(mrec));
-      s = recvfrom(client->socket, mrec, 1024, 0, &addr, &len);
+      s = recvfrom(client->socket, mrec, 1024, 0, addr, &len);
 
       if(s == -1)
 	perror("Problemes");
@@ -112,6 +116,8 @@ Client* fils_udp(Client *client)
 	{
 	  if(strcmp(mrec, "--quit"))
 	    ecrire_ligne(mrec);
+	  else
+	    client = detruire_client(client);
 	}
     }
   return client;
@@ -138,21 +144,24 @@ Client* fils_tcp(Client *client)
     }
 
   // Si le code d'erreur est bon, on affiche le message.
-  menv = strdup("?");
-  if(write(client->sockbla, menv, strlen(menv)) < 1)
+  if(client->sockbla != -1)
     {
-      perror("Erreur write ");
-    }
+      menv = strdup("?");
+      if(write(client->sockbla, menv, strlen(menv)) < 1)
+	{
+	  perror("Erreur write ");
+	}
 
-  memset(mrec, 0, sizeof(mrec));
-  if(read(client->sockbla, mrec, 1024) < 0)
-    perror("Problemes");
-  else
-    {
-      if(strcmp(mrec, "--quit") && strcmp(mrec, ""))
-	ecrire_ligne(mrec);
+      memset(mrec, 0, sizeof(mrec));
+      if(read(client->sockbla, mrec, 1024) < 0)
+	perror("Problemes");
       else
-	client = detruire_client(client);
+	{
+	  if(strcmp(mrec, "--quit") && strcmp(mrec, ""))
+	    ecrire_ligne(mrec);
+	  else
+	    client = detruire_client(client);
+	}
     }
   return client;
 }
@@ -218,10 +227,10 @@ int main (int argc, char* argv[]) {
 	      client = creer_client(client, socks[i+argc], 1);
 	    }
 	}
+
       if(client != NULL)
 	{
 	  client = client->suivant;
-	  printf("socks : %d - %d - %d - %d\n", client->socket, client->suivant->socket, client->suivant->suivant->socket, client->suivant->suivant->suivant->socket);
 	  if(client->type == 0)
 	    {
 	      client = fils_udp(client);
