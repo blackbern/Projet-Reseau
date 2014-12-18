@@ -11,7 +11,9 @@
   (ou la valeur -1 si l'opération a échouée).
 */
 
-// version udp de creersock
+/*
+ * version udp de creersock
+ */
 int creersockudp( u_short port) {
 
   int sock, retour;
@@ -46,7 +48,9 @@ int creersockudp( u_short port) {
   return (sock);
 }
 
-// version tcp de creersock
+/*
+ * version tcp de creersock
+ */
 int creersocktcp( u_short port) {
 
   int sock, retour;
@@ -84,11 +88,15 @@ int creersocktcp( u_short port) {
 
 int ecrire(char *m)
 {
-  FILE *fic = fopen(FIC, "a");
-  if(fwrite(m, sizeof(char), strlen(m), fic) == 0)
-    perror("Erreur ecriture fichier ");
-  fclose(fic);
-  return 0;
+  if(m != NULL && strlen(m) > 0)
+    {
+      FILE *fic = fopen(FIC, "a");
+      if(fwrite(m, sizeof(char), strlen(m), fic) == 0)
+	perror("Erreur ecriture fichier ");
+      fclose(fic);
+      return 0;
+    }
+  return 1;
 }
 
 int ecrire_ligne(char *m)

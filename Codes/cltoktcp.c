@@ -92,21 +92,19 @@ int main(int argc, char* argv[]) {
 		perror("Erreur ecriture");
 		return(-1);
 	      }
-	    printf("Ecriture terminée\n");
 	  }
       }
-    else if(!strcmp(rec,"-"))
+    else if(!strcmp(rec,""))
       {
 	printf("Deconnecté par le serveur\n");
 	exit(EXIT_FAILURE);
       }
+    printf("Message envoyé\n");
 
     while(1)
       {
 	memset(env, 0, sizeof(env));
 	memset(rec, 0, sizeof(rec));
-	printf("Que voulez-vous écrire ? (--quit pour se deconnecter)\n");
-	scanf(" %[^\n]",env);
 	if(read(sock, rec, 1024) < 0)
 	  {
 	    perror("Erreur lecture");
@@ -114,16 +112,18 @@ int main(int argc, char* argv[]) {
 	  }
 	if(!strcmp(rec,"?"))
 	  {
+	    printf("Ecriture réussie\n");
+	    printf("Que voulez-vous écrire ? (--quit pour se deconnecter)\n");
+	    scanf(" %[^\n]",env);
 	    if (write(sock, env, strlen(env)) == -1)
 	      {
 		perror("Erreur ecriture");
 		return(-1);
 	      }
-	    printf("Ecriture terminée\n");
 	  }
-	else if(!strcmp(rec,"-"))
+	else if(!strcmp(rec,""))
 	  {
-	    printf("Deconnecté par le serveur\n");
+	    printf("Deconnecté par le serveur : écriture échouée\n");
 	    exit(EXIT_FAILURE);
 	  }
 	if(!strcmp(env, "--quit"))

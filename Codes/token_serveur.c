@@ -4,7 +4,7 @@
 
 #include "tool_serv.h"
 
-int socks[BUFSIZ], nb_clients;
+int socks[BUFSIZ];
 
 /**
  * structure décrivant la liste des clients ainsi que les informations qui leur sont associées.
@@ -126,6 +126,7 @@ Client* fils_tcp(Client *client)
   int optval = 1;
   char mrec[BUFSIZ], *menv;
 
+  printf("tcp : %d\n", client->socket);
   len = sizeof(client->addr);
   //initialisation de la connexion
   if(client->sockbla == -1)
@@ -148,7 +149,7 @@ Client* fils_tcp(Client *client)
     perror("Problemes");
   else
     {
-      if(strcmp(mrec, "--quit"))
+      if(strcmp(mrec, "--quit") && strcmp(mrec, ""))
 	ecrire_ligne(mrec);
       else
 	client = detruire_client(client);
@@ -166,7 +167,7 @@ int main (int argc, char* argv[]) {
 
   // On définit les variables nécéssaires
   int i;
-  Client *client, *old;
+  Client *client, *p;
   fd_set fd_read;
   struct timeval timespan;
   
@@ -183,11 +184,9 @@ int main (int argc, char* argv[]) {
     }
   signal(SIGINT, deroute);
 
-  old = (Client*) malloc(sizeof(Client));
-  nb_clients = 0;
-
   while(1)
     {
+      // réinitialisations
       timespan.tv_sec = 1;
       FD_ZERO(&fd_read);
       for(i = 0; i < argc-1; i++)
@@ -196,45 +195,41 @@ int main (int argc, char* argv[]) {
 	  FD_SET(socks[i+argc], &fd_read);
 	}
 
+      // ne pas relire les sockets en cours d'utilisation
+      if(client != NULL)
+	{
+	  p = client;
+	  while(p->suivant != client)
+	    {
+	      FD_CLR(p->socket, &fd_read);
+	      p = p->suivant;
+	    }
+	}
+
       select(socks[2*argc-2]+1, &fd_read, 0, 0, &timespan);
       for(i = 0; i < argc-1; i++)
 	{
 	  if(FD_ISSET(socks[i], &fd_read))
 	    {
-	      if(client != NULL)
-		*old = *client;
 	      client = creer_client(client, socks[i], 0);
-	      nb_clients++;
-	      old->suivant = client;
 	    }
 	  else if(FD_ISSET(socks[i+argc], &fd_read))
 	    {
-	      if(client != NULL)
-		*old = *client;
 	      client = creer_client(client, socks[i+argc], 1);
-	      nb_clients++;
-	      old->suivant = client;
 	    }
 	}
       if(client != NULL)
 	{
-	  printf("socks : %d - %d - %d\n", client->socket, client->suivant->socket, client->suivant->suivant->socket);
+	  client = client->suivant;
+	  printf("socks : %d - %d - %d - %d\n", client->socket, client->suivant->socket, client->suivant->suivant->socket, client->suivant->suivant->suivant->socket);
 	  if(client->type == 0)
 	    {
-	      *old = *client;
 	      client = fils_udp(client);
-	      if(client->socket != old->socket)
-		FD_SET(old->socket, &fd_read);
 	    }
 	  else if(client->type == 1)
 	    {
-	      *old = *client;
 	      client = fils_tcp(client);
-	      if(client == NULL || client->socket != old->socket)
-		FD_SET(old->socket, &fd_read);
 	    }
-	  if(client != NULL)
-	    client = client->suivant;
 	}
     }
 
