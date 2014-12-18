@@ -6,6 +6,9 @@
 
 int socks[BUFSIZ], nb_clients;
 
+/**
+ * structure décrivant la liste des clients ainsi que les informations qui leur sont associées.
+ */
 typedef struct client {
   int socket; // socket associée
   int type; // -1 pour non initialisé / 0 pour udp / 1 pour tcp
@@ -14,6 +17,9 @@ typedef struct client {
   struct client *suivant; // client suivant dans l'anneau
 } Client;
 
+/**
+ * fonction permettant de supprimer le client courant de la liste
+ */
 Client* detruire_client(Client *c)
 {
   Client *p = c;
@@ -27,6 +33,9 @@ Client* detruire_client(Client *c)
   return p->suivant;
 }
 
+/**
+ * fonction de création d'un client dans la liste, à la fin de la liste
+ */
 Client* creer_client(Client *c, int sock, int t)
 {
   Client *new, *p = c;
@@ -53,6 +62,9 @@ Client* creer_client(Client *c, int sock, int t)
   return c;
 }
 
+/**
+ * fonction de déroute d'interruption
+ */
 void deroute()
 {
   int i;
@@ -63,6 +75,9 @@ void deroute()
   exit(EXIT_SUCCESS);
 }
 
+/**
+ * fonction de traitement d'un client udp
+ */
 Client* fils_udp(Client *client)
 {
   socklen_t len;
@@ -102,6 +117,9 @@ Client* fils_udp(Client *client)
   return client;
 }
 
+/**
+ * fonction de traitement d'un client tcp
+ */
 Client* fils_tcp(Client *client)
 {
   socklen_t len;
@@ -178,13 +196,11 @@ int main (int argc, char* argv[]) {
 	  FD_SET(socks[i+argc], &fd_read);
 	}
 
-      printf("select\n");
       select(socks[2*argc-2]+1, &fd_read, 0, 0, &timespan);
       for(i = 0; i < argc-1; i++)
 	{
 	  if(FD_ISSET(socks[i], &fd_read))
 	    {
-	      printf("udp + %d\n", i);
 	      if(client != NULL)
 		*old = *client;
 	      client = creer_client(client, socks[i], 0);
@@ -193,7 +209,6 @@ int main (int argc, char* argv[]) {
 	    }
 	  else if(FD_ISSET(socks[i+argc], &fd_read))
 	    {
-	      printf("tcp + %d\n", i);
 	      if(client != NULL)
 		*old = *client;
 	      client = creer_client(client, socks[i+argc], 1);
